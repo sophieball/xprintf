@@ -1,4 +1,4 @@
-These xprintf functions now support format specifiers %c, %d, %f, %i, %s, %u, %lu, and %ld. Sample usage is in test_xprintf.c
+These xprintf functions mimics fprintf() inside transactions. They now support format specifiers %c, %d, %f, %i, %s, %u, %lu, and %ld. Sample usage is in test_xprintf.c
 
 A queue of type queue_t is initialized by calling xprintf_init(). This queue is shared across threads. 
 
