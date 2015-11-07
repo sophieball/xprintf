@@ -8,162 +8,140 @@
 #include "xprintf.h"
 
 typedef struct valist{
-	void* item;
+	long item;
+	double f_item;
+
 	struct valist* next;
 } valist_t;
 
-struct node{
+typedef struct node{
 	FILE* stream;
 	char* format;
-	struct valist* valist; 
 	int valist_length;
+	int valist_filled;
+
 	struct node * next;
-	int totalsize;
-};
+
+	char* output;
+	char* number;
+	struct valist* valist; 
+} node_t;
 
 struct queue{
-	struct node * next;
+	int filled;
 	int length;
+
+	struct node * next;
 };
 
 int get_length(queue_t queue){
 	return queue->length;
 }
 
-queue_t xprintf_init(){
-	queue_t queue = (queue_t)malloc(sizeof(queue_t));
+/*allocates space for the queue, all nodes and all va_list items;
+returns the pointer to the queue*/
+queue_t xprintf_init(int message_num){
+
+	int i,j;
+	queue_t queue = (queue_t)malloc(sizeof(struct queue));
+	struct node* temp;
+	struct valist* vatemp;
 	if(queue == NULL){
 		return NULL;
 	}
 	queue->next = NULL;
-	queue->length = 0;
+	queue->length = message_num;
+	queue->filled = 0;
+
+	/*malloc nodes*/
+	for(i=0; i<queue->length; i++){
+		temp = (struct node*)malloc(sizeof(struct node));
+		if(temp == NULL){
+			xprintf_free(queue);
+			return NULL;
+		}
+		/*add node to the queue*/
+		temp->next = queue->next;
+		queue->next = temp;
+
+		temp->number = (char*)malloc(30);
+		temp->output = (char*)malloc(500);
+		temp->valist_filled = 0;
+		temp->valist_length = 20;
+		if(temp->number == NULL){
+			xprintf_free(queue);
+		}
+
+		/*malloc valist for each node*/
+		for(j=0; j<temp->valist_length; j++){
+			vatemp = (struct valist*)malloc(sizeof(struct valist));
+			if(vatemp == NULL){
+				xprintf_free(queue);
+				return NULL;
+			}
+			/*add this item to node*/
+			vatemp->next = temp->valist;
+			temp->valist = vatemp;
+		}
+	}
 	return queue;
 }
 
+/*stores va_list, all items are read and stored as long*/
 void xprintf(queue_t queue, char* format, ...){
+	int i;
+	char st;
+
 	va_list ap;
 	valist_t* valist;
+	node_t* node;
 
-	char st;
-	int aint;
-	unsigned int aui;
-	char* astring;
-	double afloat;
-	unsigned long aul;
-	long along;
-
-	int* pint;
-	unsigned int* pui;
-	char* pstring;
-	double* pfloat;
-	unsigned long* pul;
-	long* plong;
-	struct node* newNode;
-
-	newNode = (struct node*) malloc(sizeof(struct node));
-	if(newNode == NULL){
+	/*find the first unfilled node*/
+	node = queue->next; 
+	if(queue->filled < queue->length){
+		for(i=1; i<=queue->filled; i++){
+			node = node->next;
+		}
+	}
+	else{
 		return;
 	}
-	newNode->format = format;
-	newNode->totalsize = 0;
-	newNode->valist_length = 0;
-	newNode->valist = NULL;
-	newNode->next = queue->next;
 
-	/*adds the new message to the beginning of the list	*/
-	queue->next = newNode;
-	(queue->length)++;
+	queue->filled++;
+	node->format = format;
 
 	va_start(ap, format);
 
-
-
 	while(*format!='\0'){
 		if(*format == '%'){
-			valist = (valist_t*) malloc(sizeof(valist_t));
-			if(valist == NULL){
-				free(newNode);
+			/*find the next unused valist node*/
+			valist = node->valist;
+			if(node->valist_filled < node->valist_length){
+				for(i=0; i<node->valist_filled; i++){
+					valist = valist->next;
+				}
+			}
+			else{
+				/*no more available space*/
 				return;
 			}
+
+			node->valist_filled++;
+
 			st = *(++format);
-			switch(st){
-				case 'i':
-					aint = va_arg(ap, int);
-					pint = (int*) malloc(sizeof(aint));
-					*pint = aint;
-					valist->item = pint;
-					newNode->totalsize += 10;
-					break;
-				case 'u':
-					aui = va_arg(ap, unsigned int);
-					pui = (unsigned int*) malloc(sizeof(aui));
-					*pui = aui;
-					valist->item = pui;
-					newNode->totalsize += 10;
-					break;
-				case 'd':
-					aint = va_arg(ap, int);
-					pint = (int*) malloc(sizeof(aint));
-					*pint = aint;
-					valist->item = pint;
-					newNode->totalsize += 10;
-
-					break;
-				case 'c':
-					aint = va_arg(ap, int);
-					pint = (int*) malloc(sizeof(aint));
-					*pint = aint;
-					valist->item = pint;
-					newNode->totalsize += 10;
-					printf("\n");
-					break;
-				case 's':
-					astring = va_arg(ap, char*);
-					pstring = (char*) malloc(sizeof(astring));
-					strcpy(pstring, astring);
-					valist->item = pstring;
-					newNode->totalsize += sizeof(astring);
-
-					break;
-				case 'l':
-					if(*(format+1) == 'u'){
-						format++;
-						aul = va_arg(ap, unsigned long);
-						pul = (unsigned long*) malloc (sizeof(aul));
-						*pul = aul;
-						valist->item = pul;
-						newNode->totalsize += 20;
-
-						break;
-					}
-					else if(*(format+1) == 'd'){
-						format++;
-						along = va_arg(ap, long);
-						plong = (long*) malloc(sizeof(along));
-						*plong = along;
-						valist->item = plong;
-						newNode->totalsize += 20;
-
-						break;
-					}
-					break;
-				case 'f':
-					afloat = va_arg(ap, double);
-					pfloat = (double*) malloc(sizeof(afloat));
-					*pfloat = afloat;
-					valist->item = pfloat;
-					newNode->totalsize += sizeof(afloat);
-					break;
+			if(st == 'f'){
+				valist->f_item = va_arg(ap, double);
 			}
-			valist->next = newNode->valist;
-			newNode->valist = valist;
-			newNode->valist_length++;
+			else{
+				valist->item = va_arg(ap, long);
+			}
 		}
 		format++;
 	}
 	va_end(ap);
 }
 
+/*converts (unsigned) long/int to string*/
 static char *int10_to_str(long int val, char *dst)
 {
   char buffer[65];
@@ -194,172 +172,60 @@ static char *int10_to_str(long int val, char *dst)
   return dst-1;
 }
 
+/*start printing message from the first node to the last*/
 void xprintf_fini(struct queue* queue, FILE *stream){
-	int i = 0;
-	struct node* node = queue->next;
-	struct valist* temp;
+	int j, count;
+	struct node* node;
+	struct valist* valist;
 	char* format;
 	char* message;
 	char* message_start;
-	char* numbers;
-
-	if(node != NULL){
-		for(i=1; i<queue->length; i++){
-
-			node = node->next;
-		}
-	}
-	(queue->length)--;
 
 
-	while(node != NULL){
+	node = queue->next;
+
+
+	for(j=0; j<queue->filled; j++){
+		count = 0;
 		format = node->format;
-		message_start = (char*)malloc(sizeof(format) + node->totalsize + 1);
+		valist = node->valist;
+		message_start = node->output;
 		message = message_start;
 		while(*format != '\0'){		
 			if(*format == '%'){
-				/*replace with the item. free the valist node.*/
 				format++;
 				if(*format == 'l'){
 					format++;
-					if(*format == 'd'){
-						temp = node->valist;
-						if(temp != NULL){
-							for(i=1; i<node->valist_length; i++){
-								temp = temp->next;
-							}
-						}
-						if(numbers==NULL){
-							return;
-						}
+					if(*format == 'd' || *format == 'u'){
+						int10_to_str((long)valist->item, node->number);
 
-						numbers = (char*) calloc(21, 1);
-						int10_to_str(*(long*)temp->item, numbers);
-
-						strcpy(message, numbers);
-						message += sizeof(numbers);
-						free(numbers);
-						free(temp->item);
-						free(temp);
-						node->valist_length--;
-					}
-					else if(*format == 'u'){
-						temp = node->valist;
-						if(temp != NULL){
-							for(i=1; i<node->valist_length; i++){
-								temp = temp->next;
-							}
-						}
-						if(numbers==NULL){
-							return;
-						}
-
-						numbers = (char*) calloc(21, 1);
-						int10_to_str(*(unsigned long*)temp->item, numbers);
-
-						strcpy(message, numbers);
-						message += sizeof(numbers);
-						free(numbers);
-						free(temp->item);
-						free(temp);
-						node->valist_length--;				
+						strcpy(message, node->number);
+						message += strlen(node->number);
 					}
 				}
 				else if(*format == 'c'){
-					temp = node->valist;
-					if(temp != NULL){
-						for(i=1; i<node->valist_length; i++){
-							temp = temp->next;
-						}
-					}
-
-					if(numbers==NULL){
-						return;
-					}
-					*message = *(int*)temp->item;	
+					*message = (char)valist->item;	
 					message += 1;
-					free(temp->item);
-					free(temp);
-					node->valist_length--;
 				}
-				else if(*format == 'i'){
-					temp = node->valist;
-					if(temp != NULL){
-						for(i=1; i<node->valist_length; i++){
-							temp = temp->next;
-						}
-					}
+				else if(*format == 'i' || *format == 'u'){
+					int10_to_str((int)valist->item, node->number);
 
-					if(numbers==NULL){
-						return;
-					}
-					numbers = (char*)calloc(11, 1);
-					int10_to_str(*(int*)temp->item, numbers);
-					strcpy(message, numbers);
-					message += strlen(numbers);
-					free(numbers);
-					free(temp->item);
-					free(temp);
-					node->valist_length--;
-				}
-				else if(*format == 'u'){
-					temp = node->valist;
-					if(temp != NULL){
-						for(i=1; i<node->valist_length; i++){
-							temp = temp->next;
-						}
-					}
-
-					if(numbers==NULL){
-						return;
-					}
-					numbers = (char*)calloc(11, 1);
-					int10_to_str(*(unsigned int*)temp->item, numbers);
-					strcpy(message, numbers);
-					message += strlen(numbers);
-					free(numbers);
-					free(temp->item);
-					free(temp);
-					node->valist_length--;
+					strcpy(message, node->number);
+					message += strlen(node->number);	
 				}
 				else if(*format == 's'){
-					temp = node->valist;
-					if(temp != NULL){
-						for(i=1; i<node->valist_length; i++){
-							temp = temp->next;
-						}
-					}
 
-					if(numbers==NULL){
-						return;
-					}
-					strcpy(message, temp->item);
-					message += strlen(temp->item);
-					free(temp->item);
-					free(temp);
-					node->valist_length--;
+					strcpy(message, (char*)valist->item);
+					message += strlen((char*)valist->item);	
 				}
 				else if(*format == 'f'){
-					temp = node->valist;
-					if(temp != NULL){
-						for(i=1; i<node->valist_length; i++){
-							temp = temp->next;
-						}
-					}
 
-					if(numbers==NULL){
-						return;
-					}
-					numbers = (char*)calloc(35, 1);
-					sprintf(numbers, "%f", *(double*)temp->item);
-					strcpy(message, numbers);
-					message += strlen(numbers);
-					free(numbers);
-					free(temp->item);
-					free(temp);
-					node->valist_length--;
+					sprintf(node->number, "%f", (float)valist->f_item);
+					strcpy(message, node->number);
+					message += strlen(node->number);	
 				}
 				format++;
+				valist = valist->next;
 			}
 			else{
 				*message = *format;
@@ -369,21 +235,28 @@ void xprintf_fini(struct queue* queue, FILE *stream){
 		}
 		*(message) = '\0';
 		fprintf(stream, "%s", message_start);
-		free(node);
-		free(message_start);
+		fflush(stdout);
+		node = node->next;
 
-		
-		if(queue->length == 0){
-			node = NULL;
+	
+	}
+}
+
+void xprintf_free(struct queue* queue){
+	int i,j;
+	struct node* node;
+	struct valist* valist;
+	for(i=0; i<queue->length; i++){
+		node = queue->next;
+		free(node->number);
+		free(node->output);
+		for(j=0; j<node->valist_length; j++){
+			valist = node->valist;
+			node->valist = valist->next;
+			free(valist);
 		}
-		else{
-			node = queue->next;
-			for(i=1; i<queue->length; i++){
-				node = node->next;
-			}
-		}
-		(queue->length)--;
+		queue->next = node->next;
+		free(node);
 	}
 	free(queue);
 }
-
