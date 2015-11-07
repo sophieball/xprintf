@@ -13,10 +13,12 @@ queue_t xprintf_init(int message_num);
 void xprintf(queue_t, char*, ...);
 
 /*Prints out all messages stored in queue in FIFO order to stream.*/
-void xprintf_fini(queue_t, FILE* stream);
+void xprintf_out(queue_t, FILE* stream);
 
+/*Frees everything malloc-ed.*/
 void xprintf_free(queue_t);
 
+/*Number of messages stored in queue.*/
 int get_length(queue_t);
 
 #endif
