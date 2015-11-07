@@ -235,7 +235,6 @@ void xprintf_fini(struct queue* queue, FILE *stream){
 		}
 		*(message) = '\0';
 		fprintf(stream, "%s", message_start);
-		fflush(stdout);
 		node = node->next;
 
 	
