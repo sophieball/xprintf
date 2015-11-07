@@ -48,7 +48,7 @@ void *consumer(void *argv)
 		pthread_cond_wait(&cond,&mutex);
 	}
 	fp = fopen("testing.txt", "w");
-	xprintf_fini(queue, fp);
+	xprintf_out(queue, fp);
 	xprintf_free(queue);
 	fclose(fp);
 	sleep(1);
