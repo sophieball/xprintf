@@ -1,0 +1,1 @@
+all: xprintf.c x

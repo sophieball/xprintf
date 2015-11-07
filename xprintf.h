@@ -15,6 +15,8 @@ void xprintf(queue_t, char*, ...);
 /*Prints out all messages stored in queue in FIFO order to stream.*/
 void xprintf_fini(queue_t, FILE* stream);
 
+void xprintf_free(queue_t);
+
 int get_length(queue_t);
 
 #endif

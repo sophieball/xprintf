@@ -12,6 +12,7 @@ void printva(int num, ...){
 	long c;
 	long s;
 	long d;
+	float f;
 	va_list ap;
 	va_start(ap, num);
 	a = va_arg(ap, long);
@@ -19,8 +20,8 @@ void printva(int num, ...){
 	c = va_arg(ap, long);
 	s = va_arg(ap, long);
 	d = va_arg(ap, long);
-	printf("%i, %lu, %ld, %s, %c\n", (int)a, b, c, (char*)s, (char)d);
-	printf("length:%i\n", strlen((char*)s));
+	f = va_arg(ap, double);
+	printf("%i, %lu, %ld, %s, %c, %f\n", (int)a, b, c, (char*)s, (char)d, (float)f);
 }
 
 /*converts (unsigned) long/int to string*/
@@ -62,11 +63,11 @@ int main(void){
 	long c = -13242324;
 	char d = 'd';
 	char* s = "hello";
+	float f = 3.1415926;
 	char* ss, sss;
-	printva(3, a,b,c,s,d);
+	printva(3, a,b,c,s,d,f);
 
 	ss = (char*)malloc(30);
 	int10_to_str(c, ss);
-	printf("%i, %s\n", strlen(ss), ss);
 
 }

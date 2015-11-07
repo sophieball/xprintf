@@ -1,0 +1,227 @@
+#include <pthread.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include "xprintf.h"
+
+typedef struct valist{
+	void* item;
+	struct valist* next;
+} valist_t;
+
+struct node{
+	FILE* stream;
+	char* format;
+	valist_t* valist; //va_args
+	int valist_length;
+	struct node * next;
+	int totalsize;
+};
+
+struct queue{
+	struct node * next;
+	int length;
+};
+
+enum types {
+	tint,
+	tchar,
+	tstring,
+	tlong,
+	tunsigned_long,
+	tunsigned_int,
+	tfloat,
+};
+
+struct queue queue;
+
+void printx_init(struct queue* queue){
+	queue = (struct queue*)malloc(sizeof(struct queue));
+	if(queue == NULL){
+		return;
+	}
+	queue->next = NULL;
+	queue->length = 0;
+}
+
+void print_in(struct queue* queue, FILE *stream, char* format, ...){
+	// fprintf(stream, format);
+	va_list ap;
+	valist_t* valist;
+	valist_t** temp_list;
+	int i;
+	char st;
+	int aint;
+	char* astring;
+	float afloat;
+	unsigned long aul;
+	unsigned int aui;
+	long along;
+
+	int* pint;
+	char* pstring;
+	float* pfloat;
+	unsigned long* pul;
+	unsigned int* pui;
+	long* plong;
+	void* arg;
+	node_t newNode;
+	node_t temp;
+
+	va_start(ap, format);
+
+	newNode = (node_t) malloc(sizeof(node_t));
+	if(newNode == NULL){
+		return;
+	}
+	newNode->stream = stream;
+	newNode->format = format;
+	newNode->totalsize = 0;
+	newNode->valist_length = 0;
+	newNode->valist = NULL;
+	newNode->next = queue->next;
+	//adds the new message to the beginning of the list	
+
+	queue->next = newNode;
+	
+	queue->length++;
+
+
+	while(*format!='\0'){
+		if(*format == '%'){
+			valist = (valist_t*) malloc(sizeof(valist_t));
+			if(valist == NULL){
+				free(newNode);
+				return;
+			}
+			valist->next = newNode->valist;
+			newNode->valist = valist;
+			newNode->valist_length++;
+
+			st = *(++format);
+			switch(st){
+				case 'i':
+					aint = va_arg(ap, int);
+					pint = &aint;
+					valist->item = pint;
+					newNode->totalsize += sizeof(int);
+					printf("%d\n",*(int*)valist->item);
+					break;
+				case 'd':
+					aint = va_arg(ap, int);
+					pint = &aint;
+					valist->item = pint;
+					newNode->totalsize += sizeof(aint);
+
+					break;
+				case 'c':
+					aint = va_arg(ap, int);
+					pint = &aint;
+					valist->item = pint;
+					newNode->totalsize += sizeof(int);
+
+					putchar(*(int*)valist->item);
+					printf("\n");
+					break;
+				case 's':
+					astring = va_arg(ap, char*);
+					pstring = astring;
+					valist->item = pstring;
+					newNode->totalsize += sizeof(astring);
+
+					break;
+				case 'l':
+					if(*(format+1) == 'u'){
+						format++;
+						aul = va_arg(ap, unsigned long);
+						pul = &aul;
+						valist->item = pul;
+						newNode->totalsize += sizeof(aul);
+
+						break;
+					}
+					else if(*(format+1) == 'd'){
+						format++;
+						along = va_arg(ap, long);
+						plong = &along;
+						valist->item = plong;
+						newNode->totalsize += sizeof(along);
+
+						printf("%ld\n",*(long*)valist->item);
+						break;
+					}
+					break;
+				case 'f':
+					break;
+				default:
+					break;
+
+			}
+		}
+		format++;
+	}
+
+	va_end(ap);
+}
+
+void printx(struct queue* queue){
+	int i = 0;
+	node_t node = queue->next;
+	valist_t* temp;
+	char* format = node->format;
+	char* message = (char*)malloc(sizeof(format) + node->totalsize + 1);
+	char* message_start = message;
+	char* numbers;
+	int count = 0;
+	int length = sizeof(format);
+	while(node != NULL){
+		while(*format != '\0'){
+			if(*format == '%'){
+				//replace with the item. free the valist node.
+				format++;
+				if(*format == 'l'){
+
+				}
+				else{
+					temp = node->valist;
+					if(temp != NULL){
+						for(i=1; i<node->valist_length; i++){
+							temp = temp->next;
+						}
+					}
+					numbers = (char*) malloc(sizeof(temp->item));
+					sprintf(numbers, "%d", *(int*)temp->item);
+					*message = *numbers;
+					message += sizeof(numbers);
+					free(numbers);
+					free(temp);
+					node->valist_length--;
+				}
+			}
+			else{
+				*message = *format;
+				format++;
+				message++;
+			}
+		}
+		*(++message) = '\0';
+		node = node->next;
+		printf("%s",message_start);
+	}
+}
+
+
+
+int main(){
+	long i = 10000000000;
+	FILE* fp = fopen("file.txt", "w");
+
+	printx_init(&queue);
+	print_in(&queue, fp, "%i %ld, %c", 3,i,'5');
+
+	printx(&queue);
+	
+	return 0;
+}

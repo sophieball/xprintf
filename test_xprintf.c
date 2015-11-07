@@ -49,6 +49,7 @@ void *consumer(void *argv)
 	}
 	fp = fopen("testing.txt", "w");
 	xprintf_fini(queue, fp);
+	xprintf_free(queue);
 	fclose(fp);
 	sleep(1);
 	pthread_mutex_unlock(&mutex);
@@ -62,7 +63,7 @@ int main(){
 	pthread_t thread[2];
 	pthread_attr_t attributes;
 	int tid1,tid2;
-	queue =  xprintf_init();
+	queue =  xprintf_init(3);
 	
 	printf("\nMain thread started\n");
 	pthread_attr_init(&attributes);
