@@ -35,7 +35,7 @@ struct queue{
 };
 
 int get_length(queue_t queue){
-	return queue->length;
+	return queue->filled;
 }
 
 /*allocates space for the queue, all nodes and all va_list items;
@@ -173,7 +173,7 @@ static char *int10_to_str(long int val, char *dst)
 }
 
 /*start printing message from the first node to the last*/
-void xprintf_fini(struct queue* queue, FILE *stream){
+void xprintf_out(struct queue* queue, FILE *stream){
 	int j, count;
 	struct node* node;
 	struct valist* valist;
@@ -235,7 +235,6 @@ void xprintf_fini(struct queue* queue, FILE *stream){
 		}
 		*(message) = '\0';
 		fprintf(stream, "%s", message_start);
-		fflush(stdout);
 		node = node->next;
 
 	
